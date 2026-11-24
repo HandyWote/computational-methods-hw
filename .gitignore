@@ -3,12 +3,12 @@ __pycache__/
 *.py[cod]
 .venv/
 
-# 课程资料（PPT 等，不入库）
-docs/*.pptx
-
 # 实验输出
 figures/
 
 # IDE
 .idea/
 .vscode/
+
+# macOS
+.DS_Store

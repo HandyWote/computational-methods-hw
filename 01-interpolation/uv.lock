@@ -155,7 +155,7 @@ wheels = [
 ]
 
 [[package]]
-name = "interpolation-lab"
+name = "hw01-interpolation"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
