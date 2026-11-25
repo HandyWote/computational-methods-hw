@@ -15,6 +15,7 @@
 \hypersetup{hidelinks}
 
 \geometry{left=2.6cm,right=2.6cm,top=2.6cm,bottom=2.6cm}
+\emergencystretch=1.5em   % 中文不能断词，留一点兜底伸缩，避免行末溢出
 \graphicspath{{assets/}}
 \captionsetup{font=small,labelsep=quad}
 \renewcommand{\arraystretch}{1.15}
@@ -36,7 +37,7 @@
     xleftmargin=1.2em,
 }
 
-% 放宽浮动体限制，避免"图在上、表在下、中间空白"的排版
+% 放宽浮动体限制，避免“图在上、表在下、中间空白”的排版
 \renewcommand{\topfraction}{0.92}
 \renewcommand{\bottomfraction}{0.85}
 \renewcommand{\textfraction}{0.08}
@@ -64,7 +65,7 @@
     \begin{tabular}{rl}
         姓\hspace{2em}名： & 黄应辉 \\
         学\hspace{2em}号： & 2024611031 \\
-        专\hspace{2em}业： & 数据科学与大数据技术 \\
+        专\hspace{2em}业： & 计算机科学与技术 \\
         指导教师： & 陈夏铭\\
     \end{tabular}
 
@@ -115,7 +116,7 @@ $f(x)=\sin x/x$ 在 $x=0$ 处没有定义，但极限 $\lim_{x\to0}f(x)=1$ 存�
 因此式 \eqref{eq:target} 没有闭式的解析结果，工程上只能用数值积分估算。
 该积分就是正弦积分函数在 1 处的值 $\mathrm{Si}(1)$。
 
-为了给各算法的误差提供基准，需要一个比双精度更准的"真值"。把 $\sin x$ 展成幂级数再逐项积分：
+为了给各算法的误差提供基准，需要一个比双精度更准的“真值”。把 $\sin x$ 展成幂级数再逐项积分：
 \begin{equation}
     \frac{\sin x}{x}=\sum_{k=0}^{\infty}\frac{(-1)^k x^{2k}}{(2k+1)!}
     \quad\Longrightarrow\quad
@@ -127,13 +128,13 @@ $f(x)=\sin x/x$ 在 $x=0$ 处没有定义，但极限 $\lim_{x\to0}f(x)=1$ 存�
     I=0.946083\,070367\,183014\,9413\cdots
     \label{eq:exact}
 \end{equation}
-程序中 \lstinline|EXACT| 即为该值，交互界面显示的"误差"指 $|I_{\text{近似}}-I|$。
-该基准不依赖任何数值积分方法，不会出现"用数值方法检验数值方法"的循环论证。
+程序中 \lstinline|EXACT| 即为该值，交互界面显示的“误差”指 $|I_{\text{近似}}-I|$。
+该基准不依赖任何数值积分方法，不会出现“用数值方法检验数值方法”的循环论证。
 
 % ---------------------------------------------------------------
 \section{被积函数与坐标系}\label{sec:function}
 
-算法只关心"给 $x$ 返回 $f(x)$"这一件事，所以先准备被积函数模块。
+算法只关心“给 $x$ 返回 $f(x)$”这一件事，所以先准备被积函数模块。
 \lstinline|function.py| 把实验对象（函数、区间、真值）集中在一处，算法模块只接收函数与区间作参数，不绑定具体问题。
 
 \subsection{function.py}
@@ -159,7 +160,7 @@ $f(x)=\sin x/x$ 在 $x=0$ 处没有定义，但极限 $\lim_{x\to0}f(x)=1$ 存�
 % ---------------------------------------------------------------
 \section{五种求积方法}\label{sec:methods}
 
-五种方法按"用多少个函数值、拟合得多精"的顺序展开：矩形 → 梯形 → 辛普森属于\textbf{牛顿-柯特斯}家族，
+五种方法按“用多少个函数值、拟合得多精”的顺序展开：矩形 → 梯形 → 辛普森属于\textbf{牛顿-柯特斯}家族，
 节点等距、权重固定，精度靠加密区间提升；龙贝格与高斯则从两个不同方向突破：前者对梯形结果做\textbf{外推}，
 后者把\textbf{节点位置}也作为自由度。每种方法对应一个模块，统一提供
 \lstinline|xxx_rule(f, a, b, ...)| 计算近似值、\lstinline|evaluations(...)| 给出求值次数、
@@ -182,9 +183,9 @@ $n$ 个矩形面积之和即为近似值：
 
 \textbf{实现要点。}
 \begin{itemize}
-    \item 三种矩形共用 \lstinline|sample_x| 决定"第 $k$ 段在哪取函数值"，再由 \lstinline|pieces| 一次性生成
+    \item 三种矩形共用 \lstinline|sample_x| 决定“第 $k$ 段在哪取函数值”，再由 \lstinline|pieces| 一次性生成
         \lstinline|[(左端, 宽, 高)]| 列表；计算（\lstinline|rectangle_rule|）与画图（\lstinline|draw|）共用这同一份数据，
-        不会出现"算的和画的不是一套"。
+        不会出现“算的和画的不是一套”。
     \item \lstinline|draw| 中标点的 \lstinline|xs| 列表先补上 $b$ 再过滤越界点，保证右端点取法时标点恰好落在区间内。
     \item 左/中/右的差异全部封装在 \lstinline|sample_x| 一个函数里，调用方只需换一个字符串参数。
 \end{itemize}
@@ -241,7 +242,7 @@ $n$ 个矩形面积之和即为近似值：
     I\approx\frac{4T(h/2)-T(h)}{3}.
     \label{eq:extrap}
 \end{equation}
-这就是 Richardson 外推，误差阶从 $O(h^2)$ 跳到 $O(h^4)$。对一列二分步长的梯形值 $T_0,T_1,\dots,T_k$ 反复外推，得到龙贝格表
+这就是 Richardson 外推，误差阶从 $O(h^2)$ 跳到 $O(h^4)$。对一列二分步长的梯形值 $T_0,T_1,\allowbreak\dots,\allowbreak T_k$ 反复外推，得到龙贝格表
 \begin{equation}
     R_{k,0}=T_k,\qquad
     R_{k,j}=R_{k,j-1}+\frac{R_{k,j-1}-R_{k-1,j-1}}{4^j-1},
@@ -279,13 +280,13 @@ $n$ 个矩形面积之和即为近似值：
     \item \lstinline|table| 按式 \eqref{eq:romberg} 逐行生成下三角表，第 $k$ 行只引用第 $k-1$ 行，
         实际使用时可以只保留两行；这里为清晰起见保留整张表。
     \item \lstinline|draw| 直接复用 \lstinline|trapezoid.draw| 画最细一层（$2^k$ 段）梯形：
-        龙贝格法在几何上就是"画出梯形、报出外推值"。
+        龙贝格法在几何上就是“画出梯形、报出外推值”。
 \end{itemize}
 
 \subsection{高斯-勒让德法}\label{subsec:gauss}
 
 \subsubsection{思路}
-前面所有方法的节点都固定在等分点上，权重由"对低次多项式精确"确定。
+前面所有方法的节点都固定在等分点上，权重由“对低次多项式精确”确定。
 高斯求积把\textbf{节点位置}也作为未知量：$m$ 个节点 $t_1<\cdots<t_m$ 与权重 $A_1,\dots,A_m$ 共 $2m$ 个自由度，
 恰好可令 $1,t,\dots,t^{2m-1}$ 共 $2m$ 个多项式积分精确，代数精度 $2m-1$，是 $m$ 个节点所能达到的上限。
 满足条件的节点是 $m$ 次勒让德多项式 $P_m(t)$ 的零点，权重 $A_i=2/\bigl[(1-t_i^2)P_m'(t_i)^2\bigr]$。
@@ -308,8 +309,8 @@ $n$ 个矩形面积之和即为近似值：
         它用 Newton 迭代在双精度下求出 $P_m$ 的零点与对应权重，$m\le6$ 时结果与手算值完全一致。
     \item \lstinline|gauss_rule| 对每个节点单独调用 \lstinline|f|，而不是把数组整体传给 \lstinline|f|——
         \lstinline|function.f| 内部有 \lstinline|x == 0.0| 分支，传入 numpy 数组会因真值不唯一而抛 \lstinline|ValueError|。
-    \item \lstinline|draw| 在每个节点处画一条竖线到曲线并标点：高斯公式没有"分段"概念，
-        几何上就是"在若干精心挑选的位置采样，加权求和"。
+    \item \lstinline|draw| 在每个节点处画一条竖线到曲线并标点：高斯公式没有“分段”概念，
+        几何上就是“在若干精心挑选的位置采样，加权求和”。
 \end{itemize}
 
 % ---------------------------------------------------------------
@@ -352,42 +353,42 @@ matplotlib 没有原生下拉框，\lstinline|dropdown.py| 用一个 \lstinline|
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{ui_default.png}
+    \includegraphics[width=0.72\textwidth]{ui_default.png}
     \caption{程序初始界面：只显示被积函数 $f(x)=\sin x/x$ 与下拉栏}
     \label{fig:default}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{ui_rectangle.png}
+    \includegraphics[width=0.72\textwidth]{ui_rectangle.png}
     \caption{矩形法（中矩形，$n=8$）：误差 $1.96\times10^{-4}$，8 次求值}
     \label{fig:rectangle}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{ui_trapezoid.png}
+    \includegraphics[width=0.72\textwidth]{ui_trapezoid.png}
     \caption{梯形法（$n=8$）：误差 $3.92\times10^{-4}$，9 次求值}
     \label{fig:trapezoid}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{ui_simpson.png}
+    \includegraphics[width=0.72\textwidth]{ui_simpson.png}
     \caption{辛普森法（$n=8$）：误差 $2.41\times10^{-7}$，9 次求值}
     \label{fig:simpson}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{ui_romberg.png}
+    \includegraphics[width=0.72\textwidth]{ui_romberg.png}
     \caption{龙贝格法（$k=3$，8 段梯形）：误差 $2.00\times10^{-11}$，9 次求值}
     \label{fig:romberg}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\textwidth]{ui_gauss.png}
+    \includegraphics[width=0.72\textwidth]{ui_gauss.png}
     \caption{高斯法（$m=3$）：误差 $6.37\times10^{-8}$，3 次求值}
     \label{fig:gauss}
 \end{figure}
@@ -419,11 +420,11 @@ matplotlib 没有原生下拉框，\lstinline|dropdown.py| 用一个 \lstinline|
         矩形法与梯形法为 $O(h^2)$，辛普森法为 $O(h^4)$，龙贝格法经 $k$ 次外推可达 $O(h^{2k+2})$，
         高斯法 $m$ 个节点可达代数精度 $2m-1$。
     \item 同样 9 次函数求值，梯形法误差 $3.9\times10^{-4}$，辛普森法 $2.4\times10^{-7}$，龙贝格法 $2.0\times10^{-11}$：
-        辛普森法是"换一种拟合"，龙贝格法是"对已有结果做外推"，两者都比单纯加密区间划算得多。
+        辛普森法是“换一种拟合”，龙贝格法是“对已有结果做外推”，两者都比单纯加密区间划算得多。
     \item 高斯法用 3 次求值达到 $6.4\times10^{-8}$，是求值次数最少的方法；龙贝格法在同等求值次数下精度最高。
         实际工程中若被积函数求值代价高，优先考虑高斯求积；若已有梯形程序且要求高精度，龙贝格外推是最省事的升级路径。
     \item 交互程序把五种方法放在同一坐标系下实时切换、同屏比较误差与求值次数，
-        直观展示了"近似图形—参数—精度"三者的联系。
+        直观展示了“近似图形—参数—精度”三者的联系。
 \end{enumerate}
 
 \appendix
