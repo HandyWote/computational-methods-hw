@@ -10,6 +10,8 @@
 \usepackage{geometry}
 \usepackage{caption}
 \usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
 \usepackage{float}   % 用 [H] 精确放置图表，避免浮动造成的大片空白
 \usepackage{hyperref}
 \hypersetup{hidelinks}
@@ -20,24 +22,69 @@
 \captionsetup{font=small,labelsep=quad}
 \renewcommand{\arraystretch}{1.15}
 
-\lstset{
+% ---------------------------------------------------------------
+% 代码排版：仿 VS Code Dark+ 配色，等宽字体用 JetBrains Mono（缺失时回退 DejaVu Sans Mono）。
+% XeLaTeX 下 listings 会把非 ASCII 字符交给 xeCJK 处理，中文注释走 \CJKmonofont，无需 escape。
+\usepackage{fontspec}
+\IfFontExistsTF{JetBrainsMono Nerd Font}
+    {\setmonofont{JetBrainsMono Nerd Font}[Scale=0.80]}
+    {\setmonofont{DejaVu Sans Mono}[Scale=0.86]}
+\IfFontExistsTF{Noto Sans CJK SC}
+    {\setCJKmonofont{Noto Sans CJK SC}[Scale=0.86]}
+    {\setCJKmonofont{FandolHei}[Scale=0.86]}
+
+\definecolor{codebg}{HTML}{1E1E1E}   % 编辑器背景
+\definecolor{codefg}{HTML}{D4D4D4}   % 前景
+\definecolor{codekw}{HTML}{569CD6}   % 关键字：蓝
+\definecolor{codestr}{HTML}{CE9178}  % 字符串：橙
+\definecolor{codecmt}{HTML}{6A9955}  % 注释：绿
+
+\lstdefinestyle{vscode}{
     language=Python,
-    basicstyle=\ttfamily\footnotesize,
-    keywordstyle=\bfseries,
-    numbers=left,
-    numberstyle=\tiny,
-    numbersep=6pt,
-    frame=single,
-    breaklines=true,
-    breakindent=2em,
+    deletekeywords=[2]{str},   % 内置类型名不算关键字，与 VS Code 一致
+    basicstyle=\ttfamily\footnotesize\color{codefg},
+    keywordstyle=\color{codekw},
+    stringstyle=\color{codestr},
+    commentstyle=\color{codecmt},
+    moredelim=**[s][\color{codestr}]{"""}{"""},   % docstring 按字符串着色
+    moredelim=**[s][\color{codestr}]{'''}{'''},
+    backgroundcolor=\color{codebg},
     columns=fullflexible,
     keepspaces=true,
     showstringspaces=false,
+    upquote=true,              % 直引号 " ' 而不是弯引号
+    breaklines=true,
+    breakindent=2em,
     tabsize=4,
-    xleftmargin=1.2em,
+    numbers=left,              % 沿用源码真实行号，中灰，在深底上可见但不抢眼
+    numberstyle=\tiny\color{codefg!55},
+    numbersep=1.0em,
+    xleftmargin=2.2em,
+    xrightmargin=0pt,
+    aboveskip=0pt,
+    belowskip=0pt,
 }
 
-% 放宽浮动体限制，避免“图在上、表在下、中间空白”的排版
+% 代码块外壳：深色圆角框，行号与代码都在框内（同 VS Code 观感）
+\newtcolorbox{codebox}{
+    colback=codebg, colframe=codebg, boxrule=0pt, arc=2pt,
+    left=0.6em, right=0.6em, top=0.5em, bottom=0.5em,
+    before skip=0.9em, after skip=0.9em,
+}
+\lstset{style=vscode}
+
+% 行内代码：同样的深色小底块
+\newcommand{\code}[1]{%
+    {\colorbox{codebg}{\color{codefg}\ttfamily\CJKfamily{tt}\footnotesize\ #1\ }}}%
+\setlength{\fboxsep}{1.6pt}
+
+% 源码在上一级目录。\src{文件}{起}{止} 只贴关键片段，行号沿用源码真实行号。
+\newcommand{\src}[3]{%
+    \begin{codebox}%
+    \lstinputlisting[style=vscode,linerange={#2-#3},firstnumber=#2]{../#1}%
+    \end{codebox}}
+
+% 放宽浮动体限制
 \renewcommand{\topfraction}{0.92}
 \renewcommand{\bottomfraction}{0.85}
 \renewcommand{\textfraction}{0.08}
@@ -45,9 +92,6 @@
 \setcounter{topnumber}{3}
 \setcounter{bottomnumber}{3}
 \setcounter{totalnumber}{4}
-
-% 源码在上一级目录；\src{rectangle.py} 把整个文件贴进正文
-\newcommand{\src}[1]{\lstinputlisting{../#1}}
 
 \begin{document}
 
@@ -73,37 +117,13 @@
     {\zihao{4} \the\year 年 11 月 24 日}
 \end{titlepage}
 
-% ==================== 摘要 ====================
-\pagestyle{empty}
-\begin{center}
-    {\zihao{3} \textbf{摘\quad 要}}
-\end{center}
-
-本文以 $f(x)=\sin x/x$ 在 $[0,1]$ 上的积分为对象。该函数的原函数不是初等函数，解析积分无法写出，
-工程上只能用数值积分估算。本文独立编程实现\textbf{矩形法}、\textbf{梯形法}、\textbf{辛普森法}、
-\textbf{龙贝格法}与\textbf{高斯-勒让德法}五种求积方法，以幂级数算得的高精度值
-$I=0.946083070367183\cdots$ 为基准，在同一个交互程序中对各方法的近似图形、近似值与误差进行实时比较。
-
-针对矩形法、梯形法与辛普森法三种牛顿-柯特斯型公式，分别以\textbf{每段一个函数值的矩形}、
-\textbf{每段两个函数值的弦}与\textbf{每两段三个函数值的抛物线}作为近似，$n=8$ 时误差依次为
-$1.96\times10^{-4}$、$3.92\times10^{-4}$ 与 $2.41\times10^{-7}$：矩形法与梯形法同属 $O(h^2)$，
-辛普森法则为 $O(h^4)$，每两段多算一个点即可将误差降低三个数量级。
-
-针对龙贝格法与高斯法，分别以\textbf{二分梯形序列的 Richardson 外推}与\textbf{勒让德多项式零点作节点}构造求积公式：
-$k=3$ 时龙贝格法以 9 次求值将误差压至 $2.00\times10^{-11}$；$m=3$ 的高斯公式仅用 3 次求值即达 $6.37\times10^{-8}$。
-结果表明在相同求值次数下龙贝格法精度最高，高斯法则以最少的求值次数获得可用精度，两者均远优于经典的牛顿-柯特斯型公式。
-
-\vspace{0.5cm}
-\noindent\textbf{关键词：}数值积分；辛普森公式；龙贝格积分；高斯求积；Richardson 外推
-
-\newpage
-\pagestyle{plain}
+% ==================== 目录 ====================
 \tableofcontents
 \newpage
 
 % ==================== 正文 ====================
 % ---------------------------------------------------------------
-\section{问题与真值}\label{sec:problem}
+\section{被积函数与真值}\label{sec:function}
 
 本次实验计算积分
 \begin{equation}
@@ -111,144 +131,139 @@ $k=3$ 时龙贝格法以 9 次求值将误差压至 $2.00\times10^{-11}$；$m=3$
     \label{eq:target}
 \end{equation}
 $f(x)=\sin x/x$ 在 $x=0$ 处没有定义，但极限 $\lim_{x\to0}f(x)=1$ 存在，是可去奇点，
-补定义 $f(0)=1$ 后它在 $[0,1]$ 上处处光滑。然而它的原函数不是初等函数（Liouville 定理），
-即不存在由多项式、指数、对数、三角函数经有限次运算写出的 $F(x)$ 使 $F'=f$，
-因此式 \eqref{eq:target} 没有闭式的解析结果，工程上只能用数值积分估算。
-该积分就是正弦积分函数在 1 处的值 $\mathrm{Si}(1)$。
+补定义 $f(0)=1$ 后它在 $[0,1]$ 上处处光滑；而它的原函数不是初等函数，
+因此式 \eqref{eq:target} 没有闭式的解析结果，只能数值估算。该积分就是正弦积分在 1 处的值 $\mathrm{Si}(1)$。
 
-为了给各算法的误差提供基准，需要一个比双精度更准的“真值”。把 $\sin x$ 展成幂级数再逐项积分：
+为了给各算法的误差提供基准，把 $\sin x$ 展成幂级数再逐项积分：
 \begin{equation}
     \frac{\sin x}{x}=\sum_{k=0}^{\infty}\frac{(-1)^k x^{2k}}{(2k+1)!}
     \quad\Longrightarrow\quad
-    \mathrm{Si}(1)=\sum_{k=0}^{\infty}\frac{(-1)^k}{(2k+1)\,(2k+1)!}.
+    I=\mathrm{Si}(1)=\sum_{k=0}^{\infty}\frac{(-1)^k}{(2k+1)\,(2k+1)!}
     \label{eq:series}
 \end{equation}
-式 \eqref{eq:series} 的通项以阶乘速度衰减，取 12 项即可在双精度下精确，取 60 项配合精确有理数运算可给出任意位小数：
 \begin{equation}
     I=0.946083\,070367\,183014\,9413\cdots
     \label{eq:exact}
 \end{equation}
-程序中 \lstinline|EXACT| 即为该值，交互界面显示的“误差”指 $|I_{\text{近似}}-I|$。
-该基准不依赖任何数值积分方法，不会出现“用数值方法检验数值方法”的循环论证。
+通项以阶乘速度衰减，取 12 项即可在双精度下精确。
+后文的“误差”均指 $|I_{\text{近似}}-I|$，其中 $I$ 取式 \eqref{eq:exact}。
 
-% ---------------------------------------------------------------
-\section{被积函数与坐标系}\label{sec:function}
+所有算法都只依赖“给 $x$ 返回 $f(x)$”这一接口，所以先把被积函数、积分区间与真值集中在一处（\code{function.py}），
+算法模块只接收 \code{f, a, b} 作参数，不绑定具体问题。
+\src{function.py}{21}{38}
+\src{function.py}{41}{56}
 
-算法只关心“给 $x$ 返回 $f(x)$”这一件事，所以先准备被积函数模块。
-\lstinline|function.py| 把实验对象（函数、区间、真值）集中在一处，算法模块只接收函数与区间作参数，不绑定具体问题。
-
-\subsection{function.py}
-\src{function.py}
-
-几点说明：
-\begin{itemize}
-    \item \lstinline|f| 在 $x=0$ 处直接返回 1，避免 0/0；其余点调用 \lstinline|math.sin|。
-        左矩形与梯形、辛普森都会在端点 $a=0$ 求值，若不处理会直接报 \lstinline|ZeroDivisionError|。
-    \item \lstinline|EXACT| 在模块加载时用 \lstinline|si1()| 算一次，之后所有误差都相对它计算。
-        \lstinline|si1_digits| 用 \lstinline|Fraction| 与 \lstinline|Decimal| 做精确运算，
-        用于核验 \lstinline|si1()| 的双精度结果是否已经可靠（两者前 15 位一致）。
-    \item 每个函数的 docstring 中都带 \lstinline|>>>| 样例，\lstinline|python -m doctest| 可一键回归验证。
-\end{itemize}
-
-\subsection{axes.py}
-\src{axes.py}
-
-\lstinline|draw_axes| 关闭 matplotlib 默认边框，手工画出穿过原点的 x/y 数轴、箭头与两级刻度。
-\lstinline|tick_values| 与 \lstinline|format_tick| 分别负责刻度位置与刻度文字，两者都带 doctest，
-便于在不打开窗口的情况下检查 \lstinline|[-1.5, -1, ...]| 这类边界情形。
+\code{f} 在 $x=0$ 处直接返回 1，避免 0/0——梯形、辛普森都会在端点 $a=0$ 求值。
+\code{si1} 按式 \eqref{eq:series} 取 12 项，模块加载时算一次存入 \code{EXACT}，之后所有误差都相对它计算。
 
 % ---------------------------------------------------------------
 \section{五种求积方法}\label{sec:methods}
 
 五种方法按“用多少个函数值、拟合得多精”的顺序展开：矩形 → 梯形 → 辛普森属于\textbf{牛顿-柯特斯}家族，
-节点等距、权重固定，精度靠加密区间提升；龙贝格与高斯则从两个不同方向突破：前者对梯形结果做\textbf{外推}，
-后者把\textbf{节点位置}也作为自由度。每种方法对应一个模块，统一提供
-\lstinline|xxx_rule(f, a, b, ...)| 计算近似值、\lstinline|evaluations(...)| 给出求值次数、
-\lstinline|draw(ax, f, a, b, ...)| 画出近似图形，三者供 \lstinline|main.py| 以相同方式调用。
+节点等距、权重固定，精度靠加密区间提升；龙贝格与高斯则从两个方向突破：前者对梯形结果做\textbf{外推}，
+后者把\textbf{节点位置}也作为自由度。每种方法一个模块，统一提供计算近似值的 \code{xxx\_rule(f, a, b, ...)}、
+给出求值次数的 \code{evaluations(...)} 和画近似图形的 \code{draw(...)}，由 \code{main.py} 以相同方式调用。
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{ui_default.png}
+    \caption{程序初始界面：只显示被积函数与下拉栏}
+    \label{fig:default}
+\end{figure}
+
+程序用 \code{uv run main.py} 启动，在下拉栏中选择方法、拖动滑块调参数，
+下方信息栏显示近似值、真值、误差与函数求值次数（图 \ref{fig:default}）。
+
+% ---------------------------------------------------------------
 \subsection{矩形法}\label{subsec:rectangle}
 
-\subsubsection{思路}
-把 $[a,b]$ 等分为 $n$ 段，步长 $h=(b-a)/n$，每段用一处函数值作高、$h$ 作宽得到一个矩形，
-$n$ 个矩形面积之和即为近似值：
+把 $[a,b]$ 等分为 $n$ 段，步长 $h=(b-a)/n$，每段用一个函数值作高、$h$ 作宽得到矩形，求和即近似值：
 \begin{equation}
     R_n=h\sum_{k=0}^{n-1}f(x_k^{*}),\qquad
     x_k^{*}=a+kh,\;\;a+\left(k+\tfrac12\right)h,\;\;a+(k+1)h,
     \label{eq:rect}
 \end{equation}
-分别对应左、中、右三种取法。左、右矩形误差 $O(h)$，中矩形 $O(h^2)$——中点恰好是一点高斯公式的节点，代数精度为 1。
+分别对应左、中、右三种取法。左、右矩形误差 $O(h)$，中矩形 $O(h^2)$。
+实现时三种取法只差“第 $k$ 段在哪取函数值”，封装在 \code{sample\_x} 一个函数里：
+\src{rectangle.py}{25}{35}
+\code{pieces} 据此生成每段的 \code{(左端, 宽, 高)}，计算与画图共用同一份数据：
+\src{rectangle.py}{38}{50}
+\code{draw} 用这份数据画 $n$ 个矩形并标出取样点，运行效果如图 \ref{fig:rectangle}。
 
-\subsubsection{rectangle.py}
-\src{rectangle.py}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{ui_rectangle.png}
+    \caption{矩形法（中矩形，$n=8$）：误差 $1.96\times10^{-4}$，8 次求值}
+    \label{fig:rectangle}
+\end{figure}
 
-\textbf{实现要点。}
-\begin{itemize}
-    \item 三种矩形共用 \lstinline|sample_x| 决定“第 $k$ 段在哪取函数值”，再由 \lstinline|pieces| 一次性生成
-        \lstinline|[(左端, 宽, 高)]| 列表；计算（\lstinline|rectangle_rule|）与画图（\lstinline|draw|）共用这同一份数据，
-        不会出现“算的和画的不是一套”。
-    \item \lstinline|draw| 中标点的 \lstinline|xs| 列表先补上 $b$ 再过滤越界点，保证右端点取法时标点恰好落在区间内。
-    \item 左/中/右的差异全部封装在 \lstinline|sample_x| 一个函数里，调用方只需换一个字符串参数。
-\end{itemize}
+$n=8$ 时中矩形得 $R_8=0.946279196286$，误差 $1.96\times10^{-4}$，共 8 次函数求值。
 
+% ---------------------------------------------------------------
 \subsection{梯形法}\label{subsec:trapezoid}
 
-\subsubsection{思路}
-每段用连接两端点的弦代替曲线，得到梯形面积 $\frac{h}{2}[f(x_k)+f(x_{k+1})]$。
-相邻梯形在公共节点处的高度被算了两次，合并后即复化梯形公式
+每段用过两端点的弦代替曲线，得梯形面积 $\frac{h}{2}[f(x_k)+f(x_{k+1})]$；相邻梯形在公共节点处的高度被算了两次，
+合并后即复化梯形公式
 \begin{equation}
     T_n=\frac{h}{2}\left[f(a)+2\sum_{k=1}^{n-1}f(a+kh)+f(b)\right],\qquad h=\frac{b-a}{n}.
     \label{eq:trap}
 \end{equation}
-误差 $O(h^2)$，代数精度 1。
+误差 $O(h^2)$。按式 \eqref{eq:trap} 累加：先放两端点，内部节点乘 2，最后统一乘 $h/2$，每个节点只求一次函数值：
+\src{trapezoid.py}{21}{36}
 
-\subsubsection{trapezoid.py}
-\src{trapezoid.py}
+运行效果如图 \ref{fig:trapezoid}，$n=8$ 时 $T_8=0.945690863583$，误差 $3.92\times10^{-4}$，共 9 次函数求值。
 
-\textbf{实现要点。}
-\begin{itemize}
-    \item \lstinline|trapezoid_rule| 直接按式 \eqref{eq:trap} 累加：先放两端点，再对内部节点乘 2，最后统一乘 $h/2$。
-        相比逐段算 $\frac{h}{2}(y_k+y_{k+1})$ 再求和，这种写法每个节点只求一次函数值，共 $n+1$ 次。
-    \item \lstinline|pieces| 给出每段的 \lstinline|(左端, 左高, 右端, 右高)|，\lstinline|draw| 据此画四边形并标出所有节点。
-\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{ui_trapezoid.png}
+    \caption{梯形法（$n=8$）：误差 $3.92\times10^{-4}$，9 次求值}
+    \label{fig:trapezoid}
+\end{figure}
 
+% ---------------------------------------------------------------
 \subsection{辛普森法}\label{subsec:simpson}
 
-\subsubsection{思路}
-每相邻两段共用一条过三点的抛物线代替曲线，得到辛普森公式；复化后
+每相邻两段用过三点的抛物线代替曲线，复化后
 \begin{equation}
     S_n=\frac{h}{3}\left[f(a)+4\sum_{k\text{ 奇}}f(a+kh)+2\sum_{k\text{ 偶}}f(a+kh)+f(b)\right],
     \label{eq:simpson}
 \end{equation}
-其中 $n$ 必须为偶数。误差 $O(h^4)$，代数精度 3——同样 9 个函数值，比梯形准三个数量级。
+其中 $n$ 必须为偶数，误差 $O(h^4)$。奇数下标乘 4、偶数下标乘 2，一个循环完成：
+\src{simpson.py}{23}{36}
+$n$ 的偶数性由 \code{main.py} 在切换到本方法时把滑块档位改成 $2,4,\dots,64$ 来保证，算法模块不做检查。
 
-\subsubsection{simpson.py}
-\src{simpson.py}
+运行效果如图 \ref{fig:simpson}，$n=8$ 时 $S_8=0.946083310888$，误差 $2.41\times10^{-7}$，同样 9 次函数求值，比梯形准三个数量级。
 
-\textbf{实现要点。}
-\begin{itemize}
-    \item \lstinline|simpson_rule| 按式 \eqref{eq:simpson} 累加，奇数下标乘 4、偶数下标乘 2，一个循环完成。
-    \item 偶数性不在算法内检查，而是由 \lstinline|main.py| 在切换到辛普森法时把滑块档位改为 $2,4,\dots,64$，
-        从源头保证 $n$ 为偶数，算法模块保持纯净、只做一件事。
-    \item \lstinline|draw| 用 \lstinline|np.polyfit| 对每三点作二次拟合，再用 \lstinline|fill_between| 画出抛物线段下方的区域；
-        过三点的二次多项式唯一，等价于拉格朗日插值，数值上不会出现多解。
-\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{ui_simpson.png}
+    \caption{辛普森法（$n=8$）：误差 $2.41\times10^{-7}$，9 次求值}
+    \label{fig:simpson}
+\end{figure}
 
+% ---------------------------------------------------------------
 \subsection{龙贝格法}\label{subsec:romberg}
 
-\subsubsection{思路}
 复化梯形的误差有展开式 $I-T(h)=c_1h^2+c_2h^4+c_3h^6+\cdots$，只含 $h$ 的偶次幂。
 把步长减半得 $I-T(h/2)=c_1h^2/4+c_2h^4/16+\cdots$，两式消去 $c_1h^2$ 项：
 \begin{equation}
     I\approx\frac{4T(h/2)-T(h)}{3}.
     \label{eq:extrap}
 \end{equation}
-这就是 Richardson 外推，误差阶从 $O(h^2)$ 跳到 $O(h^4)$。对一列二分步长的梯形值 $T_0,T_1,\allowbreak\dots,\allowbreak T_k$ 反复外推，得到龙贝格表
+这就是 Richardson 外推，误差阶从 $O(h^2)$ 跳到 $O(h^4)$。对一列二分步长的梯形值反复外推，得到龙贝格表
 \begin{equation}
     R_{k,0}=T_k,\qquad
     R_{k,j}=R_{k,j-1}+\frac{R_{k,j-1}-R_{k-1,j-1}}{4^j-1},
     \label{eq:romberg}
 \end{equation}
-对角元 $R_{k,k}$ 的误差为 $O(h^{2k+2})$。对本题 $k=3$ 时表中元素为
+对角元 $R_{k,k}$ 的误差为 $O(h^{2k+2})$。
+
+实现分两步。\code{trapezoid\_levels} 从 $T_0$ 出发，每二分一次只在新出现的 $2^{k-1}$ 个中点求值，
+用递推 $T_k=\tfrac12T_{k-1}+h_k\sum_{i}f\bigl(a+(2i-1)h_k\bigr)$ 算出整个梯形序列，总共只需 $2^k+1$ 次求值：
+\src{romberg.py}{26}{40}
+\code{table} 按式 \eqref{eq:romberg} 逐行外推，第 $k$ 行只引用第 $k-1$ 行：
+\src{romberg.py}{43}{59}
+对本题 $k=3$ 时表中的数值为
 \begin{table}[H]
     \centering
     \caption{龙贝格表（$k=3$）：第一列为二分梯形值，向右每列外推一次}
@@ -264,32 +279,24 @@ $n$ 个矩形面积之和即为近似值：
         \bottomrule
     \end{tabular}
 \end{table}
-每一列都比前一列收敛得快，右下角即为最终结果：$k=3$ 时误差 $2.0\times10^{-11}$，
+每一列都比前一列收敛得快，右下角 $R_{3,3}$ 即最终结果：误差 $2.0\times10^{-11}$，
 而最细一层梯形 $T_3$ 本身只有 $3.9\times10^{-4}$，外推没有增加任何函数求值。
+界面上画的是最细一层（$2^k$ 段）梯形，报出的是外推值（图 \ref{fig:romberg}）。
 
-\subsubsection{romberg.py}
-\src{romberg.py}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.48\textwidth]{ui_romberg.png}
+    \caption{龙贝格法（$k=3$，8 段梯形）：误差 $2.00\times10^{-11}$，9 次求值}
+    \label{fig:romberg}
+\end{figure}
 
-\textbf{实现要点。}
-\begin{itemize}
-    \item \lstinline|trapezoid_levels| 从 $T_0=\frac{b-a}{2}[f(a)+f(b)]$ 出发，每二分一次只在新出现的 $2^{k-1}$ 个中点求值，用递推
-        \begin{equation*}
-            T_k=\frac{1}{2}T_{k-1}+h_k\sum_{i=1}^{2^{k-1}}f\bigl(a+(2i-1)h_k\bigr),\qquad h_k=\frac{b-a}{2^k},
-        \end{equation*}
-        因此整个过程只需 $2^k+1$ 次函数求值，与单算最细一层梯形相同，外推本身不花任何求值。
-    \item \lstinline|table| 按式 \eqref{eq:romberg} 逐行生成下三角表，第 $k$ 行只引用第 $k-1$ 行，
-        实际使用时可以只保留两行；这里为清晰起见保留整张表。
-    \item \lstinline|draw| 直接复用 \lstinline|trapezoid.draw| 画最细一层（$2^k$ 段）梯形：
-        龙贝格法在几何上就是“画出梯形、报出外推值”。
-\end{itemize}
-
+% ---------------------------------------------------------------
 \subsection{高斯-勒让德法}\label{subsec:gauss}
 
-\subsubsection{思路}
 前面所有方法的节点都固定在等分点上，权重由“对低次多项式精确”确定。
-高斯求积把\textbf{节点位置}也作为未知量：$m$ 个节点 $t_1<\cdots<t_m$ 与权重 $A_1,\dots,A_m$ 共 $2m$ 个自由度，
+高斯求积把\textbf{节点位置}也作为未知量：$m$ 个节点与权重共 $2m$ 个自由度，
 恰好可令 $1,t,\dots,t^{2m-1}$ 共 $2m$ 个多项式积分精确，代数精度 $2m-1$，是 $m$ 个节点所能达到的上限。
-满足条件的节点是 $m$ 次勒让德多项式 $P_m(t)$ 的零点，权重 $A_i=2/\bigl[(1-t_i^2)P_m'(t_i)^2\bigr]$。
+满足条件的节点是 $m$ 次勒让德多项式 $P_m(t)$ 的零点，权重 $A_i=2/\bigl[(1-t_i^2)P_m'(t_i)^2\bigr]$，
 在标准区间 $[-1,1]$ 上定义，通过线性变换
 \begin{equation}
     x=\frac{b-a}{2}\,t+\frac{a+b}{2},
@@ -297,103 +304,27 @@ $n$ 个矩形面积之和即为近似值：
     \int_a^b f(x)\,\mathrm{d}x=\frac{b-a}{2}\sum_{i=1}^{m}A_i\,f(x_i)
     \label{eq:gauss}
 \end{equation}
-搬到 $[a,b]$。$m=1$ 时节点 $x=(a+b)/2$、权重退化为中矩形；$m=2$ 时节点 $a+(b-a)\bigl(\tfrac12\pm\tfrac{1}{2\sqrt3}\bigr)$。
-误差 $O(h^{2m})$（以区间长度计），对光滑函数收敛极快。
+搬到 $[a,b]$。$m=1$ 时节点 $x=(a+b)/2$、权重退化为中矩形；误差 $O(h^{2m})$（以区间长度计）。
 
-\subsubsection{gauss.py}
-\src{gauss.py}
+节点与权重不手算也不查表，直接调用 \code{np.polynomial.legendre.leggauss(m)}，
+它用 Newton 迭代在双精度下求出 $P_m$ 的零点与对应权重：
+\src{gauss.py}{24}{33}
+\code{gauss\_rule} 按式 \eqref{eq:gauss} 加权求和。注意对每个节点单独调用 \code{f}，而不是把数组整体传入——
+\code{function.f} 内部有 \code{x == 0.0} 分支，传 numpy 数组会因真值不唯一而抛 \code{ValueError}：
+\src{gauss.py}{46}{58}
 
-\textbf{实现要点。}
-\begin{itemize}
-    \item 节点与权重不手算也不查表，直接调用 \lstinline|np.polynomial.legendre.leggauss(m)|，
-        它用 Newton 迭代在双精度下求出 $P_m$ 的零点与对应权重，$m\le6$ 时结果与手算值完全一致。
-    \item \lstinline|gauss_rule| 对每个节点单独调用 \lstinline|f|，而不是把数组整体传给 \lstinline|f|——
-        \lstinline|function.f| 内部有 \lstinline|x == 0.0| 分支，传入 numpy 数组会因真值不唯一而抛 \lstinline|ValueError|。
-    \item \lstinline|draw| 在每个节点处画一条竖线到曲线并标点：高斯公式没有“分段”概念，
-        几何上就是“在若干精心挑选的位置采样，加权求和”。
-\end{itemize}
-
-% ---------------------------------------------------------------
-\section{交互程序编排}\label{sec:main}
-
-\subsection{下拉栏 dropdown.py}
-
-matplotlib 没有原生下拉框，\lstinline|dropdown.py| 用一个 \lstinline|Button| 加一组展开的 \lstinline|Button| 实现：
-点按钮展开选项列表，点某一项即选中并收起，然后回调 \lstinline|on_select|。
-列表默认向上展开，避免超出画布底部。
-
-\src{dropdown.py}
-
-\subsection{主程序 main.py}
-
-\src{main.py}
-
-\textbf{编排思路。}
-\begin{itemize}
-    \item \textbf{状态集中}：所有可变状态放在 \lstinline|state| 一个字典里（当前方法、矩形种类、$n$/$k$/$m$、当前图形对象），
-        各回调只改字典，不各自缓存。
-    \item \textbf{重绘协议}：每个 \lstinline|draw| 都返回本次画出的 artist 列表，\lstinline|clear()| 逐个 \lstinline|remove|，
-        切换方法时不会残留上一种方法的图形。
-    \item \textbf{只显示需要的参数}：\lstinline|update_params| 按当前方法决定显示哪个滑块。三个滑块叠在同一位置，
-        除了 \lstinline|set_visible| 之外还必须把 \lstinline|active| 一并置为 \lstinline|False|——matplotlib 的
-        \lstinline|Slider| 用 \lstinline|ax.contains(event)| 判断命中、不看可见性，否则三个滑块会同时
-        \lstinline|grab_mouse| 而报错。
-    \item \textbf{参数约束前移}：辛普森法要求 $n$ 为偶数，\lstinline|on_method| 在切换到辛普森法时调用
-        \lstinline|set_range| 把滑块档位改成 $2,4,\dots,64$（切到其他方法时改回 $1,\dots,64$），并把当前值对齐到新档位；
-        \lstinline|set_range| 内部先关 \lstinline|eventson| 再改值，避免改档位时触发重绘。
-    \item \textbf{信息栏}：\lstinline|redraw| 把近似值、真值、误差、求值次数拼成一行显示在图下，所有方法共用一个格式。
-\end{itemize}
-
-% ---------------------------------------------------------------
-\section{运行结果}\label{sec:result}
-
-程序以 \texttt{uv run main.py} 启动，初始只显示原函数（图 \ref{fig:default}）。
-选择某种方法后，程序画出该方法的近似图形，并在图下显示近似值、真值、误差与函数求值次数。
-图 \ref{fig:rectangle}--\ref{fig:gauss} 为五种方法在默认参数下的运行截图。
+运行效果如图 \ref{fig:gauss}，$m=3$ 时得 $0.946083134078$，误差 $6.37\times10^{-8}$，仅 3 次函数求值。
+高斯公式没有“分段”概念，界面上在每个节点处画一条竖线到曲线并标点。
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.72\textwidth]{ui_default.png}
-    \caption{程序初始界面：只显示被积函数 $f(x)=\sin x/x$ 与下拉栏}
-    \label{fig:default}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.72\textwidth]{ui_rectangle.png}
-    \caption{矩形法（中矩形，$n=8$）：误差 $1.96\times10^{-4}$，8 次求值}
-    \label{fig:rectangle}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.72\textwidth]{ui_trapezoid.png}
-    \caption{梯形法（$n=8$）：误差 $3.92\times10^{-4}$，9 次求值}
-    \label{fig:trapezoid}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.72\textwidth]{ui_simpson.png}
-    \caption{辛普森法（$n=8$）：误差 $2.41\times10^{-7}$，9 次求值}
-    \label{fig:simpson}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.72\textwidth]{ui_romberg.png}
-    \caption{龙贝格法（$k=3$，8 段梯形）：误差 $2.00\times10^{-11}$，9 次求值}
-    \label{fig:romberg}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.72\textwidth]{ui_gauss.png}
+    \includegraphics[width=0.48\textwidth]{ui_gauss.png}
     \caption{高斯法（$m=3$）：误差 $6.37\times10^{-8}$，3 次求值}
     \label{fig:gauss}
 \end{figure}
 
-\subsection{对比}
+% ---------------------------------------------------------------
+\subsection{五种方法对比}\label{subsec:compare}
 
 \begin{table}[H]
     \centering
@@ -412,7 +343,6 @@ matplotlib 没有原生下拉框，\lstinline|dropdown.py| 用一个 \lstinline|
     \end{tabular}
 \end{table}
 
-% ---------------------------------------------------------------
 \section{结论}\label{sec:conclusion}
 
 \begin{enumerate}
@@ -437,22 +367,24 @@ matplotlib 没有原生下拉框，\lstinline|dropdown.py| 用一个 \lstinline|
         文件 & 职责 \\
         \midrule
         \texttt{function.py}   & 被积函数、积分区间、幂级数真值 \\
-        \texttt{axes.py}       & 手工绘制的穿过原点的 x/y 数轴 \\
         \texttt{rectangle.py}  & 矩形法（左/中/右） \\
         \texttt{trapezoid.py}  & 梯形法 \\
         \texttt{simpson.py}    & 辛普森法 \\
         \texttt{romberg.py}    & 龙贝格法（二分梯形 + Richardson 外推） \\
         \texttt{gauss.py}      & 高斯-勒让德法 \\
+        \texttt{axes.py}       & 手工绘制的穿过原点的 x/y 数轴 \\
         \texttt{dropdown.py}   & 下拉选择栏控件 \\
         \texttt{main.py}       & 交互程序编排 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\begin{lstlisting}[language=bash]
-uv run main.py                        # 交互演示
-uv run python -m doctest *.py         # 运行全部 doctest
-cd docs && xelatex 2024611031-黄应辉.tex && xelatex 2024611031-黄应辉.tex   # 编译本报告
+在作业二目录下运行：
+
+\begin{codebox}
+\begin{lstlisting}[style=vscode,language={},numbers=none]
+$ uv run main.py
 \end{lstlisting}
+\end{codebox}
 
 \end{document}
